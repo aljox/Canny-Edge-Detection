@@ -2,10 +2,45 @@
   <head>
     <meta charset="utf-8">
     <title>Canny edge detection</title>
+    <style>
+      .slidecontainer{
+        position: absolute;
+        top:0;
+        right:0;
+      }
+      .inputDialog{
+        position: absolute;
+        top:0;
+        left:0;
+      }
+      .canvas{
+        position: absolute;
+        top:30;
+        left:0;
+      }
+    </style>
   </head>
   <body>
-    <canvas id= "canvas" width= "400" height= "400"></canvas>
-    <script src= ProgramObject.js></script>
-    <script src= cannyEdgeDetectionWebGl_Object.js></script>
+    <div class="fileInput">
+      <input type = "file" id = "imageInput" accept="image/x-png,image/gif,image/jpeg, image/jpg" class="inputDialog"> </input>
+    </div>
+
+    <div class="slidecontainer">
+      <p>High threshold</p>
+      <input type="range" min="1" max="99" value="70" class="sliderHigh" id="highThreshold">
+      <p>Low threshold</p>
+      <input type="range" min="1" max="99" value="40" class="sliderLow" id="lowThreshold">
+    </div>
+
+    <canvas id= "canvas" width= "400" height= "400" class="canvas"></canvas>
+
+    <script src= /src/ProgramObject.js></script>
+    <script src= /src/event.js></script>
+    <script src= /src/cannyEdgeDetectionWebGl_Object.js></script>
+    <script>
+    document.getElementById('imageInput').addEventListener('change', selectImageEvent, false);
+    document.getElementById('highThreshold').addEventListener('input', getHighSliderEvent, false);
+    document.getElementById('lowThreshold').addEventListener('input', getLowSliderEvent, false);
+    </script>
   </body>
 </html>

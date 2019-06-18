@@ -5,36 +5,42 @@ if(!gl){
   throw Error("Browser might not support WebGl");
 }
 
-const IMAGE_SRC = "cat.jpg";
-//const IMAGE_SRC = "tip.jpg";
-//const IMAGE_SRC = "metulj.jpg";
-//const IMAGE_SRC = "heart.jpg";
-
-//Opis programov;
-const programSource = ["Vertex-Shader", "Fragment-Shader-Gaussian-GrayScale",
+//Description of programs;
+const PROGRAM_SOURCE = ["Vertex-Shader", "Fragment-Shader-Gaussian-GrayScale",
                        "Vertex-Shader", "Fragment-Shader-SobelOperator",
                        "Vertex-Shader", "Fragment-Shader-nonmaxima-Suppresion",
                        "Vertex-Shader", "Fragment-Shader-Edge-Linking"];
-const numOfPrograms = programSource.length / 2;
+const NUM_OF_PROGRAMS = PROGRAM_SOURCE.length / 2;
+const START_LOW_THRESHOLD = 0.4;
+const START_HIGH_THRESHOLD = 0.7;
 
 let shaderSource = [];
 let programs = [];
+let threshold = [START_LOW_THRESHOLD, START_HIGH_THRESHOLD];
+let image;
 
 
 function main(){
-  loadShaderSource(programSource[0], 0, programSource.length);
+  loadShaderSource(PROGRAM_SOURCE[0], 0, PROGRAM_SOURCE.length);
 }
 
 //Load .shader files
 function loadShaderSource(shaderUrl, currrentNum, numOfshaders){
-  fetch("/" + shaderUrl + ".shader")
+  let url;
+  if(currrentNum % 2 == 0){
+    url = "/src/Shaders/VertexShaders/" + shaderUrl + ".shader";
+  } else {
+    url = "/src/Shaders/FragmentShaders/" + shaderUrl + ".shader";
+  }
+
+  fetch(url)
   .then(response => response.text())
   .then((data) => {
     shaderSource.push(data);
     currrentNum++;
 
     if(currrentNum < numOfshaders){
-      loadShaderSource(programSource[currrentNum], currrentNum, numOfshaders);
+      loadShaderSource(PROGRAM_SOURCE[currrentNum], currrentNum, numOfshaders);
     } else {
       initialsePrograms();
     }
@@ -42,25 +48,9 @@ function loadShaderSource(shaderUrl, currrentNum, numOfshaders){
 }
 
 function initialsePrograms(){
-  for(i = 0; i < numOfPrograms; i++){
+  for(i = 0; i < NUM_OF_PROGRAMS; i++){
     programs.push(new Program(shaderSource[i * 2], shaderSource[i * 2 + 1]));
   }
-
-  loadImage(IMAGE_SRC, renderImage);
-}
-
-function loadImage(imageSrc, callback){
-  let image = new Image();
-  image.onload = function() {
-    console.log("Image loaded\n");
-    resizeCanvasToPictureSize(image.width, image.height);
-    callback(image);
-  }
-
-  image.onerror = function() {
-    throw Error("Image error");
-  }
-  image.src = imageSrc;
 }
 
 function renderImage(image){
@@ -83,12 +73,12 @@ function renderImage(image){
   //Ping pong between textures
   gl.bindTexture(gl.TEXTURE_2D, originalImage);
 
-  for(i = 0; i < numOfPrograms; i++){
+  for(i = 0; i < NUM_OF_PROGRAMS; i++){
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.useProgram(programs[i].getProgram());
     programs[i].setAttributes(programAttributesValues, programUniformValues[i]);
 
-    if(i == numOfPrograms - 1){
+    if(i == NUM_OF_PROGRAMS - 1){
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       break;
@@ -164,6 +154,8 @@ function setProgramUniformValues(image){
     u_resolution: {property: "2f", value: [canvas.width, canvas.height]},
     u_flipY: {property: "1f", value: 1},
     u_textureSize: {property: "2f", value: [image.width, image.height]},
+    u_highThreshold: {property: "1f", value: threshold[1]},
+    u_lowThreshold: {property: "1f", value: threshold[0]},
   };
   uniformSetArray.push(uniformSetNonmaximaSuppresion);
 
@@ -201,8 +193,8 @@ function createAndSetupTexture() {
    canvas.width = width;
    canvas.height = height;
 
-   console.log("Canvas width: " + canvas.width + "\n");
-   console.log("Canvas height: " + canvas.height + "\n");
+   //console.log("Canvas width: " + canvas.width + "\n");
+  // console.log("Canvas height: " + canvas.height + "\n");
  }
 
 function setRectanlge(){
@@ -270,7 +262,7 @@ function setKernelWeight(kernel){
   kernel.forEach(function(item){
     kernelSum += item;
   });
-  console.log("KernelSum: " + kernelSum + "\n");
+  //console.log("KernelSum: " + kernelSum + "\n");
 
   if(kernelSum > 1.0) return kernelSum;
 

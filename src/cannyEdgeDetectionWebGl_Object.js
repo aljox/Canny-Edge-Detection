@@ -19,6 +19,10 @@ let programs = [];
 let threshold = [START_LOW_THRESHOLD, START_HIGH_THRESHOLD];
 let image;
 
+let textures = [null, null];
+let frameBuffers = [null, null];
+let originalImageTexture = null;
+
 
 function main(){
   loadShaderSource(PROGRAM_SOURCE[0], 0, PROGRAM_SOURCE.length);
@@ -54,16 +58,15 @@ function initialsePrograms(){
 }
 
 function renderImage(image){
+  gl.clear(gl.COLOR_BUFFER_BIT);
 
   //Create original image texture
-  let originalImage = createAndSetupTexture();
+  originalImageTexture = createAndSetupTexture(originalImageTexture);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
   //Set textures to apply effects
-  let textures = [];
-  let frameBuffers = [];
-  for(i = 0; i < 2; i++){
-    setUpFrameBufferAndAttachTexture();
+  for(let i = 0; i < 2; i++){
+    setUpFrameBufferAndAttachTexture(i);
   }
 
   //Set object for settng programs attributes and uniforms
@@ -71,7 +74,7 @@ function renderImage(image){
   let programUniformValues = setProgramUniformValues(image);
 
   //Ping pong between textures
-  gl.bindTexture(gl.TEXTURE_2D, originalImage);
+  gl.bindTexture(gl.TEXTURE_2D, originalImageTexture);
 
   for(i = 0; i < NUM_OF_PROGRAMS; i++){
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -90,23 +93,6 @@ function renderImage(image){
 
     gl.bindTexture(gl.TEXTURE_2D, textures[i % 2]);
   }
-
-  function setUpFrameBufferAndAttachTexture(){
-    let texture = createAndSetupTexture();
-    textures.push(texture);
-
-    gl.texImage2D(
-        gl.TEXTURE_2D, 0, gl.RGBA, image.width, image.height, 0,
-        gl.RGBA, gl.UNSIGNED_BYTE, null);
-
-        let frameBufferObject = gl.createFramebuffer();
-        frameBuffers.push(frameBufferObject);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, frameBufferObject);
-
-    // Attach a texture to it.
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
-  }
-}
 
 function setProgramAttributeValues(){
   let atribBuffersSet = {
@@ -169,6 +155,30 @@ function setProgramUniformValues(image){
   return uniformSetArray;
 }
 
+
+ function setUpFrameBufferAndAttachTexture(i){
+    let texture = createAndSetupTexture(textures[i]);
+    textures[i] = texture;
+
+    gl.texImage2D(
+        gl.TEXTURE_2D, 0, gl.RGBA, image.width, image.height, 0,
+        gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+        let frameBufferObject;
+        if(frameBuffers[i] == null) {
+          frameBufferObject = gl.createFramebuffer();
+        } else {
+          frameBufferObject = frameBuffers[i];
+        }
+
+        frameBuffers[i] = frameBufferObject;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, frameBufferObject);
+
+    // Attach a texture to it.
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+  }
+}
+
 function createAndSetBuffer(data){
   let buffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -177,8 +187,9 @@ function createAndSetBuffer(data){
   return buffer;
 }
 
-function createAndSetupTexture() {
-   let texture = gl.createTexture();
+function createAndSetupTexture(texture) {
+   if(texture == null) texture = gl.createTexture();
+
    gl.bindTexture(gl.TEXTURE_2D, texture);
 
    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);

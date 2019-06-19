@@ -1,6 +1,4 @@
 //Set webGL context
-
-//TEST
 let canvas = document.getElementById("canvas");
 let gl = canvas.getContext("webgl")
 if(!gl){
